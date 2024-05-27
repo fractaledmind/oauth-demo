@@ -1,3 +1,5 @@
+oauth_provider = OAuthProvider.new
+
 Rails.application.routes.draw do
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
   resources :users, only: %i[ new ]
@@ -16,6 +18,8 @@ Rails.application.routes.draw do
   # Render dynamic PWA files from app/views/pwa/*
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
+
+  match "/provider/*phase", to: oauth_provider, via: :all
 
   # Defines the root path route ("/")
   # root "posts#index"
