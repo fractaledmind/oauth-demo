@@ -13,8 +13,12 @@ class OAuthProvider
       authorize
     when [ "GET", "/provider/authorized" ]
       authorized
-    when [ "POST", "/provider/oauth/token" ]
-      oauth_token
+    when [ "POST", "/provider/oauth/access_token" ]
+      oauth_access_token
+    when [ "GET", "/provider/api/user_info" ]
+      api_user_info
+    else
+      [ 404, { "content-type" => "text/plain" }, [ "Not Found" ] ]
     end
   end
 
@@ -59,6 +63,23 @@ class OAuthProvider
     [ 302, { "Location" => uri.to_s }, [] ]
   end
 
-  def oauth_token
+  def oauth_access_token
+    response = JSON.generate({
+      access_token: "gho_16C7e42F292c6912E7710c838347Ae178B4a",
+      scope: "repo,gist",
+      token_type: "bearer"
+    })
+
+    [ 200, { "content-type" => "application/json" }, [ response ] ]
+  end
+
+  def api_user_info
+    response = JSON.generate({
+      id: rand(1000),
+      name: @name,
+      email: @email,
+    })
+
+    [ 200, { "content-type" => "application/json" }, [ response ] ]
   end
 end

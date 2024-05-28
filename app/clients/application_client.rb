@@ -275,7 +275,7 @@ class ApplicationClient
   class Response
     # Provides easy access to the parsed response body as well as the response object headers and status code.
     #
-    # To add customer content type parser, register it in the PARSER hash:
+    # To add custom content type parser, register it in the PARSER hash:
     #
     #   class MyClient < ApplicationClient
     #     Response::PARSER["text/html"] = ->(response) { Nokogiri::HTML(response.body) }

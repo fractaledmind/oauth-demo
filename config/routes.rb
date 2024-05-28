@@ -22,5 +22,5 @@ Rails.application.routes.draw do
   match "/provider/*phase", to: oauth_provider, via: :all
 
   # Defines the root path route ("/")
-  # root "posts#index"
+  root "application#authenticated"
 end
