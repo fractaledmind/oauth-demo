@@ -1,14 +1,15 @@
 class Provider::AuthorizationsController < ApplicationController
   SCOPE = "openid profile email".freeze
 
-  # POST /provider/authorizations
+  # POST /provider/authorization
   def create
     redirect_to authorize_url, allow_other_host: true
   end
 
-  # GET /provider/authorizations/:id
+  # GET /provider/authorization
   def show
     verify_state!
+    # ...
   end
 
   private
@@ -18,7 +19,7 @@ class Provider::AuthorizationsController < ApplicationController
     uri.query = Rack::Utils.build_query({
       response_type: "code",
       client_id: Rails.application.credentials.provider.client_id,
-      redirect_uri: provider_authorization_url("ignore-me"),
+      redirect_uri: provider_authorization_url,
       scope: SCOPE,
       state: form_authenticity_token
     })
