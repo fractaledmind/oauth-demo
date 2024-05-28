@@ -1,6 +1,11 @@
 class Provider::AuthorizationsController < ApplicationController
   SCOPE = "openid profile email".freeze
 
+  rescue_from ActionController::InvalidAuthenticityToken do |exception|
+    Rails.error.report(exception)
+    redirect_to new_session_path, alert: "Authentication with Provider failed: invalid state token"
+  end
+
   # POST /provider/authorization
   def create
     redirect_to authorize_url, allow_other_host: true
