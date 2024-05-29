@@ -77,7 +77,7 @@ class OAuthProvider
     response = JSON.generate({
       id: rand(1000),
       name: @name,
-      email: @email,
+      email: @email
     })
 
     [ 200, { "content-type" => "application/json" }, [ response ] ]

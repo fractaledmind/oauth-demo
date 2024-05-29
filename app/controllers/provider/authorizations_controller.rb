@@ -46,7 +46,7 @@ class Provider::AuthorizationsController < ApplicationController
       client_id: Rails.application.credentials.provider.client_id,
       client_secret: Rails.application.credentials.provider.client_secret,
       code: params.fetch(:code),
-      redirect_uri: provider_authorization_url,
+      redirect_uri: provider_authorization_url
     })
     response.parsed_body
   end
