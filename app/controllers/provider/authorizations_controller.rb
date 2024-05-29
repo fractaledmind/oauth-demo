@@ -23,6 +23,10 @@ class Provider::AuthorizationsController < ApplicationController
 
     # 1. existing user with existing connected account signs in
     if (connected_account = User::ConnectedAccount.find_by(provider: "provider", provider_identifier: user_info.id))
+      connected_account.update!(
+        access_token: access_credentials.access_token,
+        auth: access_credentials.as_json["table"]
+      )
       sign_in(user: connected_account.user)
       redirect_to root_path, notice: "Signed in with Provider"
     # 2. existing user connects a new connected account
@@ -33,6 +37,8 @@ class Provider::AuthorizationsController < ApplicationController
         access_token: access_credentials.access_token,
         auth: access_credentials.as_json["table"]
       )
+      sign_in(user: Current.user)
+      redirect_to root_path, notice: "Connected Provider account"
     # 3. new user signs up with connected account
     else
       user = User.new(email: user_info.email)
@@ -44,7 +50,7 @@ class Provider::AuthorizationsController < ApplicationController
       )
       if user.save
         sign_in(user: user)
-        redirect_to root_path, notice: "Signed in with Provider"
+        redirect_to root_path, notice: "Signed up with Provider"
       else
         redirect_to new_session_path, alert: "Authentication with Provider failed: #{user.errors.full_messages.to_sentence}"
       end
