@@ -3,6 +3,8 @@ class Provider::AuthorizationsController < ApplicationController
   ACCESS_TOKEN_URL = "http://localhost:3001/provider/oauth/access_token".freeze
   USER_INFO_URL = "http://localhost:3001/provider/api/user_info".freeze
 
+  skip_before_action :authenticate!, only: [:create, :show]
+
   rescue_from ActionController::InvalidAuthenticityToken do |exception|
     Rails.error.report(exception)
     redirect_to new_session_path, alert: "Authentication with Provider failed: invalid state token"
@@ -18,11 +20,34 @@ class Provider::AuthorizationsController < ApplicationController
     verify_state!
     access_credentials = request_access_credentials!
     user_info = request_user_info!(access_token: access_credentials.access_token)
-    user = User.new(email: user_info.email)
-    if user.save
-      sign_in(user: user)
-      redirect_to root_path
+
+    # 1. existing user with existing connected account signs in
+    if (connected_account = User::ConnectedAccount.find_by(provider: "provider", provider_identifier: user_info.id))
+      sign_in(user: connected_account.user)
+      redirect_to root_path, notice: "Signed in with Provider"
+    # 2. existing user connects a new connected account
+    elsif Current.user.present?
+      Current.user.connected_accounts.create!(
+        provider: "provider",
+        provider_identifier: user_info.id,
+        access_token: access_credentials.access_token,
+        auth: access_credentials.as_json["table"]
+      )
+    # 3. new user signs up with connected account
     else
+      user = User.new(email: user_info.email)
+      user.connected_accounts.build(
+        provider: "provider",
+        provider_identifier: user_info.id,
+        access_token: access_credentials.access_token,
+        auth: access_credentials.as_json["table"]
+      )
+      if user.save
+        sign_in(user: user)
+        redirect_to root_path, notice: "Signed in with Provider"
+      else
+        redirect_to new_session_path, alert: "Authentication with Provider failed: #{user.errors.full_messages.to_sentence}"
+      end
     end
   end
 

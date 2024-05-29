@@ -19,7 +19,22 @@
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
   </head>
 
-  <body>
-    <%= yield %>
+  <body class="mt-6">
+    <header>
+      <%= Current.user.email %>
+    </header>
+
+    <main>
+      <%= yield %>
+    </main>
+
+    <div class="fixed top-0 inset-x-0 mx-auto">
+      <p type="alert" class="text-center text-white bg-red-500">
+        <%= flash[:alert] %>
+      </p>
+      <p type="alert" class="text-center text-white bg-blue-500">
+        <%= flash[:notice] %>
+      </p>
+    </div>
   </body>
 </html>
