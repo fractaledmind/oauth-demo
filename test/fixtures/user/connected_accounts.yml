@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  provider: test
+  provider_identifier: one
+  access_token: 123456
+  auth: {}
+  expires_at:
+
+two:
+  user: two
+  provider: test
+  provider_identifier: two
+  access_token: 098765
+  auth: {}
+  expires_at:

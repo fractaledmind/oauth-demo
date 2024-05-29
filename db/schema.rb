@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2024_05_27_164016) do
+ActiveRecord::Schema[8.0].define(version: 2024_05_29_160918) do
   create_table "sessions", force: :cascade do |t|
     t.integer "user_id", null: false
     t.string "user_agent"
@@ -18,6 +18,19 @@ ActiveRecord::Schema[8.0].define(version: 2024_05_27_164016) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "user_connected_accounts", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.string "provider", null: false
+    t.string "provider_identifier", null: false
+    t.string "access_token", null: false
+    t.json "auth", default: {}, null: false
+    t.datetime "expires_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["provider", "provider_identifier"], name: "idx_on_provider_provider_identifier_20e13c8bb0", unique: true
+    t.index ["user_id"], name: "index_user_connected_accounts_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -29,4 +42,5 @@ ActiveRecord::Schema[8.0].define(version: 2024_05_27_164016) do
   end
 
   add_foreign_key "sessions", "users"
+  add_foreign_key "user_connected_accounts", "users"
 end
