@@ -10,6 +10,6 @@ class CreateUserConnectedAccounts < ActiveRecord::Migration[8.0]
 
       t.timestamps
     end
-    add_index :user_connected_accounts, [:provider, :provider_identifier], unique: true
+    add_index :user_connected_accounts, [ :provider, :provider_identifier ], unique: true
   end
 end

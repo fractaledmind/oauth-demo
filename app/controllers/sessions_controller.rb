@@ -1,5 +1,5 @@
 class SessionsController < ApplicationController
-  skip_before_action :authenticate!, only: [:new]
+  skip_before_action :authenticate!, only: [ :new ]
 
   # GET /sessions/new
   def new

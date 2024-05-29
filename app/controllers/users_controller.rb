@@ -1,5 +1,5 @@
 class UsersController < ApplicationController
-  skip_before_action :authenticate!, only: [:new]
+  skip_before_action :authenticate!, only: [ :new ]
 
   # GET /users/new
   def new

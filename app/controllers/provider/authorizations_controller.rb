@@ -3,7 +3,7 @@ class Provider::AuthorizationsController < ApplicationController
   ACCESS_TOKEN_URL = "http://localhost:3001/provider/oauth/access_token".freeze
   USER_INFO_URL = "http://localhost:3001/provider/api/user_info".freeze
 
-  skip_before_action :authenticate!, only: [:create, :show]
+  skip_before_action :authenticate!, only: [ :create, :show ]
 
   rescue_from ActionController::InvalidAuthenticityToken do |exception|
     Rails.error.report(exception)
