@@ -9,6 +9,10 @@ class Provider::AuthorizationsController < ApplicationController
     Rails.error.report(exception)
     redirect_to new_session_path, alert: "Authentication with Provider failed: invalid state token"
   end
+  rescue_from ActionController::ParameterMissing do |exception|
+    Rails.error.report(exception)
+    redirect_to new_session_path, alert: "Authentication with Provider failed: invalid state token"
+  end
 
   # POST /provider/authorization
   def create
@@ -55,6 +59,14 @@ class Provider::AuthorizationsController < ApplicationController
         redirect_to new_session_path, alert: "Authentication with Provider failed: #{user.errors.full_messages.to_sentence}"
       end
     end
+  rescue ApplicationClient::Error => exception
+    Rails.error.report(exception)
+    msg = begin
+      JSON.parse(exception.message).fetch("error_description", "Unknown error")
+    rescue JSON::ParserError
+      exception.message
+    end
+    redirect_to new_session_path, alert: "Authentication with Provider failed: #{msg}"
   end
 
   private

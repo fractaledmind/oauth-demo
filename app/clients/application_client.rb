@@ -24,7 +24,14 @@ class ApplicationClient
 
   # Common HTTP Errors
   # See `handle_response` to add more error types as needed
-  class Error < StandardError; end
+  class Error < StandardError
+    attr_reader :code
+
+    def initialize(code = nil, msg = "")
+      @code = code
+      super(msg)
+    end
+  end
 
   class Forbidden < Error; end
 
@@ -257,7 +264,7 @@ class ApplicationClient
     when "500"
       raise InternalError, response.body
     else
-      raise Error, "#{response.code} - #{response.body}"
+      raise Error.new(response.code, response.body)
     end
   end
 
