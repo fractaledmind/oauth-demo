@@ -12,10 +12,16 @@ class ApplicationController < ActionController::Base
   def authenticate!
     return if Current.session
 
-    if cookies.signed[Session::COOKIE_KEY] && false
-      Current.session = Session.find(cookies.signed[Session::COOKIE_KEY])
+    if (user_session = find_user_session)
+      Current.session = user_session
     else
       redirect_to new_session_path, alert: "You must sign in first"
+    end
+  end
+
+  def find_user_session
+    if cookies.signed[Session::COOKIE_KEY]
+      Session.find_by(id: cookies.signed[Session::COOKIE_KEY])
     end
   end
 

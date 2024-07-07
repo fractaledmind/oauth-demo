@@ -1,7 +1,5 @@
 class Provider::AuthorizationsController < ApplicationController
-  SCOPE = "openid profile email".freeze
-  ACCESS_TOKEN_URL = "http://localhost:3001/provider/oauth/access_token".freeze
-  USER_INFO_URL = "http://localhost:3001/provider/api/user_info".freeze
+  DISCOVERY_DOCUMENT_URL = "http://localhost:3001/provider/.well-known/openid-configuration".freeze
 
   skip_before_action :authenticate!, only: [ :create, :show ]
 
@@ -9,21 +7,29 @@ class Provider::AuthorizationsController < ApplicationController
     Rails.error.report(exception)
     redirect_to new_session_path, alert: "Authentication with Provider failed: invalid state token"
   end
+
   rescue_from ActionController::ParameterMissing do |exception|
     Rails.error.report(exception)
     redirect_to new_session_path, alert: "Authentication with Provider failed: invalid state token"
   end
 
+  rescue_from JWT::DecodeError do |exception|
+    Rails.error.report(exception)
+    redirect_to new_session_path, alert: "Authentication with Provider failed: invalid JWT"
+  end
+
   # POST /provider/authorization
   def create
-    redirect_to authorize_url, allow_other_host: true
+    authorization_url = openid_client.authorize_url(redirect_uri: provider_authorization_url,
+                                                    state: form_authenticity_token)
+    redirect_to authorization_url, allow_other_host: true
   end
 
   # GET /provider/authorization
   def show
     verify_state!
-    access_credentials = request_access_credentials!
-    user_info = request_user_info!(access_token: access_credentials.access_token)
+    access_credentials = openid_client.fetch_tokens(code: params.fetch(:code), redirect_uri: provider_authorization_url)
+    user_info = decode_and_verify_token(access_credentials.id_token)
 
     # 1. existing user with existing connected account signs in
     if (connected_account = User::ConnectedAccount.find_by(provider: "provider", provider_identifier: user_info.id))
@@ -71,39 +77,32 @@ class Provider::AuthorizationsController < ApplicationController
 
   private
 
-  def authorize_url
-    uri = URI("http://localhost:3001/provider/authorize")
-    uri.query = Rack::Utils.build_query({
-      response_type: "code",
-      client_id: Rails.application.credentials.provider.client_id,
-      redirect_uri: provider_authorization_url,
-      scope: SCOPE,
-      state: form_authenticity_token
-    })
-    uri.to_s
-  end
-
-  def request_access_credentials!
-    client = ApplicationClient.new
-    response = client.post(ACCESS_TOKEN_URL, body: {
-      client_id: Rails.application.credentials.provider.client_id,
-      client_secret: Rails.application.credentials.provider.client_secret,
-      code: params.fetch(:code),
-      redirect_uri: provider_authorization_url
-    })
-    response.parsed_body
-  end
-
-  def request_user_info!(access_token:)
-    client = ApplicationClient.new(token: access_token)
-    response = client.get(USER_INFO_URL)
-    response.parsed_body
-  end
-
   def verify_state!
     state_token = params.fetch(:state)
     unless valid_authenticity_token?(session, state_token)
       raise ActionController::InvalidAuthenticityToken, "The state=#{state_token} token is inauthentic."
     end
+  end
+
+  def decode_and_verify_token(token)
+    decode_options = {
+      algorithm: "RS256",
+      verify_expiration: true,
+      verify_iat: true,
+      verify_iss: true,
+      iss: "http://localhost:3001",
+      verify_aud: true,
+      aud: Rails.application.credentials.provider.client_id,
+      jwks: openid_client.json_web_key_set
+    }
+
+    user_info = JWT.decode(token, nil, true, decode_options).first
+    OpenStruct.new(user_info)
+  end
+
+  def openid_client
+    OpenIdClient.new(discovery_document_url: DISCOVERY_DOCUMENT_URL,
+                     client_id: Rails.application.credentials.provider.client_id,
+                     client_secret: Rails.application.credentials.provider.client_secret)
   end
 end
