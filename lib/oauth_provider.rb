@@ -3,18 +3,24 @@ class OAuthProvider
     @request = nil
     @name = nil
     @email = nil
+    @sub = nil
+    @jwk = JWT::JWK.new(OpenSSL::PKey::RSA.new(2048))
   end
 
   def call(env)
     @request = Rack::Request.new(env)
 
     case [ @request.request_method, @request.path_info ]
+    when [ "GET", "/provider/.well-known/openid-configuration" ]
+      discovery_document
+    when [ "GET", "/provider/certs" ]
+      json_web_key_set
     when [ "GET", "/provider/authorize" ]
       authorize
     when [ "GET", "/provider/authorized" ]
       authorized
     when [ "POST", "/provider/oauth/access_token" ]
-      oauth_access_token
+      oauth_tokens
     when [ "GET", "/provider/api/user_info" ]
       api_user_info
     else
@@ -23,6 +29,23 @@ class OAuthProvider
   end
 
   private
+
+  def discovery_document
+    response = JSON.generate({
+      authorization_endpoint: "http://localhost:3001/provider/authorize",
+      token_endpoint: "http://localhost:3001/provider/oauth/access_token",
+      userinfo_endpoint: "http://localhost:3001/provider/api/user_info",
+      jwks_uri: "http://localhost:3001/provider/certs"
+    })
+
+    [ 200, { "content-type" => "application/json" }, [ response ] ]
+  end
+
+  def json_web_key_set
+    response = JWT::JWK::Set.new(@jwk).export.to_json
+
+    [ 200, { "content-type" => "application/json" }, [ response ] ]
+  end
 
   def authorize
     response = <<~HTML
@@ -54,6 +77,8 @@ class OAuthProvider
   def authorized
     @name = @request.params["name"]
     @email = @request.params["email"]
+    @sub = rand(1000)
+
     uri = URI(@request.params["callback_url"])
     uri.query = Rack::Utils.build_query({
       state: @request.params["state"],
@@ -63,9 +88,22 @@ class OAuthProvider
     [ 302, { "Location" => uri.to_s }, [] ]
   end
 
-  def oauth_access_token
+  def oauth_tokens
+    current_time = Time.now.to_i
+    headers = { kid: @jwk.kid, typ: "JWT" }
+    payload = {
+      aud: Rails.application.credentials.provider.client_id,
+      exp: current_time + 300,
+      iat: current_time,
+      iss: "http://localhost:3001",
+      id: @sub,
+      name: @name,
+      email: @email
+    }
+
     response = JSON.generate({
       access_token: "gho_16C7e42F292c6912E7710c838347Ae178B4a",
+      id_token: JWT.encode(payload, @jwk.signing_key, "RS256", headers),
       scope: "repo,gist",
       token_type: "bearer"
     })
@@ -75,7 +113,7 @@ class OAuthProvider
 
   def api_user_info
     response = JSON.generate({
-      id: rand(1000),
+      id: @sub,
       name: @name,
       email: @email
     })
